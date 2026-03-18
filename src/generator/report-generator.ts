@@ -79,9 +79,10 @@ export function generateReport(
     md.paragraph(`\`${suite.filePath}\``);
 
     md.table(
-      [t.headerIndex, t.headerPerspective, t.headerResult, t.headerDuration],
+      [t.headerIndex, t.headerTarget, t.headerPerspective, t.headerResult, t.headerDuration],
       suite.tests.map((test, i) => [
         String(i + 1),
+        test.target || "-",
         test.name,
         stateIcon(test.state),
         formatDuration(test.duration),

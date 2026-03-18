@@ -21,6 +21,7 @@ describe("TestDataCollector", () => {
     collector.addTestCase({
       fullName: "UserEntity > validates email",
       name: "validates email",
+      target: "",
       state: "passed",
       duration: 5,
       errors: [],
@@ -31,6 +32,7 @@ describe("TestDataCollector", () => {
     collector.addTestCase({
       fullName: "UserEntity > rejects empty name",
       name: "rejects empty name",
+      target: "",
       state: "passed",
       duration: 3,
       errors: [],
@@ -56,6 +58,7 @@ describe("TestDataCollector", () => {
     collector.addTestCase({
       fullName: "SuiteA > test1",
       name: "test1",
+      target: "",
       state: "passed",
       duration: 1,
       errors: [],
@@ -66,6 +69,7 @@ describe("TestDataCollector", () => {
     collector.addTestCase({
       fullName: "SuiteB > test2",
       name: "test2",
+      target: "",
       state: "passed",
       duration: 2,
       errors: [],
@@ -83,6 +87,7 @@ describe("TestDataCollector", () => {
     collector.addTestCase({
       fullName: "MyUseCase > fails gracefully",
       name: "fails gracefully",
+      target: "",
       state: "failed",
       duration: 10,
       errors: ["Expected 200, got 500"],
@@ -102,6 +107,7 @@ describe("TestDataCollector", () => {
     collector.addTestCase({
       fullName: "UserEntity > test",
       name: "test",
+      target: "",
       state: "passed",
       duration: 1,
       errors: [],
@@ -112,6 +118,7 @@ describe("TestDataCollector", () => {
     collector.addTestCase({
       fullName: "OrderEntity > test",
       name: "test",
+      target: "",
       state: "passed",
       duration: 1,
       errors: [],
@@ -133,6 +140,7 @@ describe("TestDataCollector", () => {
     collector.addTestCase({
       fullName: "Button > renders",
       name: "renders",
+      target: "",
       state: "passed",
       duration: 1,
       errors: [],
@@ -143,6 +151,7 @@ describe("TestDataCollector", () => {
     collector.addTestCase({
       fullName: "UserEntity > validates",
       name: "validates",
+      target: "",
       state: "passed",
       duration: 1,
       errors: [],

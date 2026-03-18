@@ -19,6 +19,7 @@ export interface LocaleMessages {
   readonly headerFailed: string;
   readonly headerPerspectives: string;
   readonly headerIndex: string;
+  readonly headerTarget: string;
   readonly headerPerspective: string;
   readonly headerResult: string;
   readonly headerDuration: string;

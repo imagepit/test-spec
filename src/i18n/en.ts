@@ -18,6 +18,7 @@ export const en: LocaleMessages = {
   headerFailed: "Failed",
   headerPerspectives: "Covered Perspectives",
   headerIndex: "#",
+  headerTarget: "Target",
   headerPerspective: "Test Perspective",
   headerResult: "Result",
   headerDuration: "Duration",

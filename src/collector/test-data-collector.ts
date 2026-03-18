@@ -14,6 +14,7 @@ import type {
 interface RawTestCase {
   readonly fullName: string;
   readonly name: string;
+  readonly target: string;
   readonly state: TestState;
   readonly duration: number;
   readonly errors: readonly string[];
@@ -40,6 +41,7 @@ export class TestDataCollector {
   addTestCase(data: {
     fullName: string;
     name: string;
+    target: string;
     state: TestState;
     duration: number;
     errors: readonly string[];
@@ -87,6 +89,7 @@ export class TestDataCollector {
     return {
       fullName: raw.fullName,
       name: raw.name,
+      target: raw.target,
       state: raw.state,
       duration: raw.duration,
       errors: raw.errors,

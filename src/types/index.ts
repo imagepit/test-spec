@@ -26,10 +26,12 @@ export interface LayerMapping {
 
 /** A single test case result */
 export interface TestCaseData {
-  /** Full name including parent suites (e.g., "GetCourseDetailUseCase > コース詳細を取得できる") */
+  /** Full name including parent suites (e.g., "GetCourseDetailUseCase > execute() > コース詳細を取得できる") */
   readonly fullName: string;
   /** Individual test name (the it() label) */
   readonly name: string;
+  /** Test target — intermediate describe name(s) between top suite and test (e.g., "execute()", "章の順序制御") */
+  readonly target: string;
   /** Result state */
   readonly state: TestState;
   /** Duration in ms */

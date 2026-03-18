@@ -15,16 +15,18 @@ function createTestRunData(
         filePath: "src/application/use-cases/get-course-detail.test.ts",
         tests: [
           {
-            fullName: "GetCourseDetailUseCase > コース詳細を取得できる",
+            fullName: "GetCourseDetailUseCase > execute() > コース詳細を取得できる",
             name: "コース詳細を取得できる",
+            target: "execute()",
             state: "passed",
             duration: 3,
             errors: [],
             filePath: "src/application/use-cases/get-course-detail.test.ts",
           },
           {
-            fullName: "GetCourseDetailUseCase > 存在しないIDでエラー",
+            fullName: "GetCourseDetailUseCase > execute() > 存在しないIDでエラー",
             name: "存在しないIDでエラー",
+            target: "execute()",
             state: "passed",
             duration: 2,
             errors: [],
@@ -63,6 +65,7 @@ describe("generateReport", () => {
     expect(md).toContain("## テスト観点サマリー");
     expect(md).toContain("Application");
     expect(md).toContain("GetCourseDetailUseCase");
+    expect(md).toContain("execute()");
     expect(md).toContain("コース詳細を取得できる");
     expect(md).toContain("✅");
   });
@@ -83,6 +86,7 @@ describe("generateReport", () => {
         {
           fullName: "MyUseCase > should reject invalid input",
           name: "should reject invalid input",
+          target: "",
           state: "failed",
           duration: 10,
           errors: ["AssertionError: expected 403 to be 401"],
@@ -115,6 +119,7 @@ describe("generateReport", () => {
             {
               fullName: "FailingSuite > breaks",
               name: "breaks",
+              target: "",
               state: "failed",
               duration: 5,
               errors: ["Error"],

@@ -12,18 +12,23 @@ import type { Reporter } from "vitest/reporters";
 import type { TestCase, TestModule, Vitest } from "vitest/node";
 
 /**
- * Extract the top-level suite name from a test case by walking up the parent chain.
+ * Walk the parent chain to collect all suite names from top to bottom.
+ * Returns [topSuiteName, ...intermediateSuiteNames].
+ *
+ * Example: describe('Course Entity') > describe('execute()') > it('test')
+ * → ["Course Entity", "execute()"]
  */
-function getTopSuiteName(testCase: TestCase): string {
+function getSuiteChain(testCase: TestCase): string[] {
+  const chain: string[] = [];
   let current: TestCase["parent"] = testCase.parent;
-  let suiteName = "";
 
   while (current && current.type === "suite") {
-    suiteName = current.name;
+    chain.push(current.name);
     current = current.parent;
   }
 
-  return suiteName;
+  // chain is bottom-up, reverse to get top-down
+  return chain.reverse();
 }
 
 /**
@@ -80,14 +85,20 @@ export class TestSpecReporter implements Reporter {
         ? result.state
         : "skipped";
 
+    const suiteChain = getSuiteChain(testCase);
+    const suiteName = suiteChain[0] ?? "";
+    // Intermediate describes = test target (method/function name)
+    const target = suiteChain.slice(1).join(" > ");
+
     this.collector.addTestCase({
       fullName: testCase.fullName,
       name: testCase.name,
+      target,
       state,
       duration: diagnostic?.duration ?? 0,
       errors: extractErrors(testCase),
       moduleId: testCase.module.moduleId,
-      suiteName: getTopSuiteName(testCase),
+      suiteName,
     });
   }
 

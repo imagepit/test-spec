@@ -18,6 +18,7 @@ export const ja: LocaleMessages = {
   headerFailed: "不合格",
   headerPerspectives: "カバー観点",
   headerIndex: "#",
+  headerTarget: "テスト対象",
   headerPerspective: "テスト観点",
   headerResult: "結果",
   headerDuration: "実行時間",
