@@ -1,6 +1,6 @@
 import type { Locale, LocaleMessages } from "../i18n/index.js";
 import { getMessages } from "../i18n/index.js";
-import type { TestCaseData, TestRunData, TestSuiteData } from "../types/index.js";
+import type { TestCaseData, TestRunData, TestSuiteData, LayerStats } from "../types/index.js";
 import { MarkdownBuilder } from "./markdown-builder.js";
 
 function stateIcon(state: string): string {
@@ -47,6 +47,18 @@ function writeHeader(md: MarkdownBuilder, data: TestRunData, t: LocaleMessages):
   );
 }
 
+/** Format coverage ratio as percentage string. */
+function formatCoveragePercent(ratio: number): string {
+  return `${Math.round(ratio * 100)}%`;
+}
+
+/** Build coverage suffix for suite heading (e.g., " (2/4 methods, 50%)"). */
+function coverageSuffix(suite: TestSuiteData): string {
+  if (!suite.coverage || suite.coverage.publicMethods.length === 0) return "";
+  const { testedMethods, publicMethods, coverageRatio } = suite.coverage;
+  return ` (${testedMethods.length}/${publicMethods.length} methods, ${formatCoveragePercent(coverageRatio)})`;
+}
+
 /** Write the suite detail table for a single suite. */
 function writeSuiteTable(
   md: MarkdownBuilder,
@@ -56,7 +68,7 @@ function writeSuiteTable(
 ): void {
   const hasFailure = suite.tests.some((test) => test.state === "failed");
   const prefix = hasFailure ? "❌ " : "";
-  md.heading(headingLevel, `${prefix}${suite.name}`);
+  md.heading(headingLevel, `${prefix}${suite.name}${coverageSuffix(suite)}`);
   md.paragraph(`\`${suite.filePath}\``);
 
   md.table(
@@ -69,6 +81,57 @@ function writeSuiteTable(
       formatDuration(test.duration),
     ]),
   );
+
+  // Untested methods list
+  if (suite.coverage && suite.coverage.untestedMethods.length > 0) {
+    md.heading(headingLevel + 1, t.untestedMethods);
+    for (const method of suite.coverage.untestedMethods) {
+      md.raw(`- \`${method.signature}\``);
+    }
+    md.raw("");
+  }
+}
+
+/** Compute method coverage stats per layer for summary table. */
+function computeLayerCoverage(
+  suites: readonly TestSuiteData[],
+  layer: string,
+): { tested: number; total: number } {
+  let tested = 0;
+  let total = 0;
+  for (const suite of suites) {
+    if (suite.layer !== layer || !suite.coverage) continue;
+    tested += suite.coverage.testedMethods.length;
+    total += suite.coverage.publicMethods.length;
+  }
+  return { tested, total };
+}
+
+/** Write the layer summary table (with optional links for split mode). */
+function writeSummaryTable(
+  md: MarkdownBuilder,
+  data: TestRunData,
+  t: LocaleMessages,
+  withLinks = false,
+): void {
+  const headers = [t.headerLayer, t.headerTestCount, t.headerPassed, t.headerFailed];
+  if (data.coverageAnalyzed) headers.push(t.headerMethodCoverage);
+  headers.push(t.headerPerspectives);
+
+  const rows = data.layerStats.map((s) => {
+    const layerLabel = withLinks
+      ? `[${s.layer}](./${layerSlug(s.layer)}.md)`
+      : s.layer;
+    const row = [layerLabel, String(s.total), String(s.passed), String(s.failed)];
+    if (data.coverageAnalyzed) {
+      const { tested, total } = computeLayerCoverage(data.suites, s.layer);
+      row.push(total > 0 ? `${tested}/${total} (${formatCoveragePercent(tested / total)})` : "-");
+    }
+    row.push(s.perspectives.join(", "));
+    return row;
+  });
+
+  md.table(headers, rows);
 }
 
 /** Write the failed tests detail section. */
@@ -103,23 +166,14 @@ export function generateReport(
 
   // Layer Summary Table
   md.heading(2, t.perspectiveSummary);
-  md.table(
-    [t.headerLayer, t.headerTestCount, t.headerPassed, t.headerFailed, t.headerPerspectives],
-    data.layerStats.map((s) => [
-      s.layer,
-      String(s.total),
-      String(s.passed),
-      String(s.failed),
-      s.perspectives.join(", "),
-    ]),
-  );
+  writeSummaryTable(md, data, t);
 
   // Detailed per-suite tables
   md.heading(2, t.details);
   for (const suite of data.suites) {
     const hasFailure = suite.tests.some((test) => test.state === "failed");
     const prefix = hasFailure ? "❌ " : "";
-    md.heading(3, `${prefix}${suite.layer} / ${suite.name}`);
+    md.heading(3, `${prefix}${suite.layer} / ${suite.name}${coverageSuffix(suite)}`);
     md.paragraph(`\`${suite.filePath}\``);
 
     md.table(
@@ -132,6 +186,15 @@ export function generateReport(
         formatDuration(test.duration),
       ]),
     );
+
+    // Untested methods list
+    if (suite.coverage && suite.coverage.untestedMethods.length > 0) {
+      md.heading(4, t.untestedMethods);
+      for (const method of suite.coverage.untestedMethods) {
+        md.raw(`- \`${method.signature}\``);
+      }
+      md.raw("");
+    }
   }
 
   writeFailedSection(md, data.failedTests, t);
@@ -209,19 +272,7 @@ export function generateSplitReport(
 
   // Layer Summary Table with links
   indexMd.heading(2, t.perspectiveSummary);
-  indexMd.table(
-    [t.headerLayer, t.headerTestCount, t.headerPassed, t.headerFailed, t.headerPerspectives],
-    data.layerStats.map((s) => {
-      const slug = layerSlug(s.layer);
-      return [
-        `[${s.layer}](./${slug}.md)`,
-        String(s.total),
-        String(s.passed),
-        String(s.failed),
-        s.perspectives.join(", "),
-      ];
-    }),
-  );
+  writeSummaryTable(indexMd, data, t, true);
 
   // Failed tests summary in index
   writeFailedSection(indexMd, data.failedTests, t);

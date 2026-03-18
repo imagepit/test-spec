@@ -23,4 +23,6 @@ export const en: LocaleMessages = {
   headerResult: "Result",
   headerDuration: "Duration",
   file: "File",
+  headerMethodCoverage: "Method Coverage",
+  untestedMethods: "Untested Methods",
 };

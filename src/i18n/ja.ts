@@ -23,4 +23,6 @@ export const ja: LocaleMessages = {
   headerResult: "結果",
   headerDuration: "実行時間",
   file: "ファイル",
+  headerMethodCoverage: "メソッドカバレッジ",
+  untestedMethods: "未テストメソッド",
 };

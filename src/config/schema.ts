@@ -7,6 +7,11 @@ const layerMappingSchema = z.object({
   layer: z.string().min(1),
 });
 
+const sourceFilePatternSchema = z.object({
+  testPattern: z.string().min(1),
+  sourceReplace: z.string(),
+});
+
 export const testSpecOptionsSchema = z.object({
   projectName: z.string().default("Project"),
   outputPath: z.string().default("docs/test-report.md"),
@@ -14,6 +19,9 @@ export const testSpecOptionsSchema = z.object({
   layerMapping: z.array(layerMappingSchema).optional(),
   projectRoot: z.string().optional(),
   splitByLayer: z.boolean().default(false),
+  analyzeCoverage: z.boolean().default(false),
+  tsConfigPath: z.string().optional(),
+  sourceFilePatterns: z.array(sourceFilePatternSchema).optional(),
 });
 
 export type TestSpecOptions = z.input<typeof testSpecOptionsSchema>;
@@ -34,5 +42,8 @@ export function resolveConfig(
     layerMapping: [...userMappings, ...DEFAULT_LAYER_MAPPINGS],
     projectRoot: parsed.projectRoot ?? process.cwd(),
     splitByLayer: parsed.splitByLayer,
+    analyzeCoverage: parsed.analyzeCoverage,
+    tsConfigPath: parsed.tsConfigPath,
+    sourceFilePatterns: parsed.sourceFilePatterns,
   };
 }

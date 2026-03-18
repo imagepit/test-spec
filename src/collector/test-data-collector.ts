@@ -82,6 +82,7 @@ export class TestDataCollector {
       totalSkipped,
       totalDuration,
       failedTests,
+      coverageAnalyzed: false,
     };
   }
 

@@ -24,6 +24,8 @@ export interface LocaleMessages {
   readonly headerResult: string;
   readonly headerDuration: string;
   readonly file: string;
+  readonly headerMethodCoverage: string;
+  readonly untestedMethods: string;
 }
 
 export type Locale = "ja" | "en";

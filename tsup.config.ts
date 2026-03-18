@@ -10,5 +10,5 @@ export default defineConfig({
   target: "node18",
   splitting: false,
   sourcemap: true,
-  external: ["vitest"],
+  external: ["vitest", "ts-morph"],
 });

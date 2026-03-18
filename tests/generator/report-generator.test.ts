@@ -54,6 +54,7 @@ function createTestRunData(
     totalSkipped: 0,
     totalDuration: 5,
     failedTests: [],
+    coverageAnalyzed: false,
     ...overrides,
   };
 }
@@ -238,5 +239,6 @@ function createMultiLayerData(): TestRunData {
     totalSkipped: 0,
     totalDuration: 5,
     failedTests: [],
+    coverageAnalyzed: false,
   };
 }

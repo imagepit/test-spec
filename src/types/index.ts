@@ -52,6 +52,8 @@ export interface TestSuiteData {
   readonly filePath: string;
   /** Test cases within this suite */
   readonly tests: readonly TestCaseData[];
+  /** Method coverage analysis (only when analyzeCoverage is enabled) */
+  readonly coverage?: SuiteCoverage;
 }
 
 /** Per-layer statistics */
@@ -77,6 +79,8 @@ export interface TestRunData {
   readonly totalSkipped: number;
   readonly totalDuration: number;
   readonly failedTests: readonly TestCaseData[];
+  /** Whether source coverage analysis was performed */
+  readonly coverageAnalyzed: boolean;
 }
 
 /** Reporter configuration */
@@ -93,4 +97,46 @@ export interface TestSpecConfig {
   readonly projectRoot: string;
   /** Split report into per-layer files (default: false) */
   readonly splitByLayer: boolean;
+  /** Enable source code analysis for method coverage (default: false) */
+  readonly analyzeCoverage: boolean;
+  /** Path to tsconfig.json for ts-morph (auto-detected if omitted) */
+  readonly tsConfigPath?: string;
+  /** Custom test-to-source file resolution patterns */
+  readonly sourceFilePatterns?: readonly SourceFilePattern[];
+}
+
+// --- Coverage Analysis Types ---
+
+/** A public method or function found in source code */
+export interface SourceMethod {
+  /** Method/function name */
+  readonly name: string;
+  /** Kind of declaration */
+  readonly kind: "method" | "function" | "constructor" | "getter" | "setter";
+  /** Full signature (e.g., "execute(input: CourseInput): Promise<Course>") */
+  readonly signature: string;
+}
+
+/** Coverage analysis result for a single test suite */
+export interface SuiteCoverage {
+  /** Suite name (matches TestSuiteData.name) */
+  readonly suiteName: string;
+  /** Resolved source file path (null if not found) */
+  readonly sourceFilePath: string | null;
+  /** All public methods found in source */
+  readonly publicMethods: readonly SourceMethod[];
+  /** Method names that have matching test targets */
+  readonly testedMethods: readonly string[];
+  /** Methods without matching test targets */
+  readonly untestedMethods: readonly SourceMethod[];
+  /** Coverage ratio (0.0 to 1.0) */
+  readonly coverageRatio: number;
+}
+
+/** Custom pattern for resolving test files to source files */
+export interface SourceFilePattern {
+  /** Regex pattern to match test file path */
+  readonly testPattern: string;
+  /** Replacement string for source file path */
+  readonly sourceReplace: string;
 }

@@ -107,7 +107,12 @@ export class TestSpecReporter implements Reporter {
     _unhandledErrors: ReadonlyArray<unknown>,
     _reason: string,
   ): Promise<void> {
-    const runData = this.collector.buildTestRunData();
+    let runData = this.collector.buildTestRunData();
+
+    // Run source coverage analysis if enabled
+    if (this.config.analyzeCoverage) {
+      runData = await this.enrichWithCoverage(runData);
+    }
 
     if (this.config.splitByLayer) {
       this.writeSplitReport(runData);
@@ -121,6 +126,31 @@ export class TestSpecReporter implements Reporter {
         `❌ ${runData.totalFailed} failed | ` +
         `⏭ ${runData.totalSkipped} skipped`,
     );
+  }
+
+  private async enrichWithCoverage(
+    runData: import("../types/index.js").TestRunData,
+  ): Promise<import("../types/index.js").TestRunData> {
+    try {
+      const { analyzeSourceCoverage, attachCoverage } = await import(
+        "../analyzer/source-analyzer.js"
+      );
+      const coverageMap = await analyzeSourceCoverage(runData.suites, this.config);
+      const enrichedSuites = attachCoverage(runData.suites, coverageMap);
+      console.log("[test-spec] Source coverage analysis completed.");
+      return { ...runData, suites: enrichedSuites, coverageAnalyzed: true };
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : String(error);
+      if (msg.includes("Cannot find module") || msg.includes("ts-morph")) {
+        console.warn(
+          "[test-spec] ts-morph not installed. Skipping coverage analysis. " +
+            "Install with: pnpm add -D ts-morph",
+        );
+      } else {
+        console.warn(`[test-spec] Coverage analysis failed: ${msg}`);
+      }
+      return runData;
+    }
   }
 
   private writeSingleReport(runData: import("../types/index.js").TestRunData): void {
