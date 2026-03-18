@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { resolve } from "node:path";
-import { analyzeSourceCoverage, attachCoverage } from "../../src/analyzer/source-analyzer.js";
+import { analyzeSourceCoverage, attachCoverage, inferTestTargets } from "../../src/analyzer/source-analyzer.js";
 import type { TestSuiteData, TestSpecConfig } from "../../src/types/index.js";
 import { DEFAULT_LAYER_MAPPINGS } from "../../src/config/defaults.js";
 
@@ -215,5 +215,92 @@ describe("attachCoverage", () => {
     const result = attachCoverage(suites, emptyMap);
     expect(result).toHaveLength(1);
     expect(result[0].coverage).toBeUndefined();
+  });
+});
+
+describe("inferTestTargets", () => {
+  it("infers targets from test file code blocks for tests with empty targets", async () => {
+    const config = createConfig();
+    const suites = [
+      createSuite({
+        filePath: "sample-class.test.ts",
+        tests: [
+          {
+            fullName: "SampleService > メインの処理を正しく実行できる",
+            name: "メインの処理を正しく実行できる",
+            target: "",
+            state: "passed",
+            duration: 5,
+            errors: [],
+            filePath: "sample-class.test.ts",
+          },
+          {
+            fullName: "SampleService > 入力を検証できる",
+            name: "入力を検証できる",
+            target: "",
+            state: "passed",
+            duration: 3,
+            errors: [],
+            filePath: "sample-class.test.ts",
+          },
+          {
+            fullName: "SampleService > DTOに変換できる",
+            name: "DTOに変換できる",
+            target: "",
+            state: "passed",
+            duration: 2,
+            errors: [],
+            filePath: "sample-class.test.ts",
+          },
+        ],
+      }),
+    ];
+
+    const coverageMap = await analyzeSourceCoverage(suites, config);
+    const result = inferTestTargets(suites, config, coverageMap);
+
+    // "メインの処理を正しく実行できる" block contains svc.execute() → target = "execute()"
+    expect(result[0].tests[0].target).toBe("execute()");
+    // "入力を検証できる" block contains svc.validate() → target = "validate()"
+    expect(result[0].tests[1].target).toBe("validate()");
+    // "DTOに変換できる" block contains svc.toDTO() → target = "toDTO()"
+    expect(result[0].tests[2].target).toBe("toDTO()");
+  });
+
+  it("preserves existing targets and only fills empty ones", async () => {
+    const config = createConfig();
+    const suites = [
+      createSuite({
+        filePath: "sample-class.test.ts",
+        tests: [
+          {
+            fullName: "SampleService > execute() > runs correctly",
+            name: "runs correctly",
+            target: "execute()",
+            state: "passed",
+            duration: 5,
+            errors: [],
+            filePath: "sample-class.test.ts",
+          },
+          {
+            fullName: "SampleService > DTOに変換できる",
+            name: "DTOに変換できる",
+            target: "",
+            state: "passed",
+            duration: 2,
+            errors: [],
+            filePath: "sample-class.test.ts",
+          },
+        ],
+      }),
+    ];
+
+    const coverageMap = await analyzeSourceCoverage(suites, config);
+    const result = inferTestTargets(suites, config, coverageMap);
+
+    // Existing target preserved
+    expect(result[0].tests[0].target).toBe("execute()");
+    // Empty target filled
+    expect(result[0].tests[1].target).toBe("toDTO()");
   });
 });

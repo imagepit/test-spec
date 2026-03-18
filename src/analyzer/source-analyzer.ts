@@ -163,6 +163,75 @@ export function attachCoverage(
   });
 }
 
+/**
+ * Infer test targets for tests that have empty targets.
+ * Reads the test file, splits it into per-test blocks, and detects
+ * which source methods are called within each block.
+ *
+ * Only works when coverage data is available (needs method names from source).
+ */
+export function inferTestTargets(
+  suites: readonly TestSuiteData[],
+  config: TestSpecConfig,
+  coverageMap: Map<string, SuiteCoverage>,
+): TestSuiteData[] {
+  // Cache: testFilePath → file content
+  const fileCache = new Map<string, string>();
+
+  return suites.map((suite) => {
+    // Skip if no tests have empty targets
+    const hasEmptyTargets = suite.tests.some((t) => !t.target);
+    if (!hasEmptyTargets) return suite;
+
+    const key = `${suite.filePath}::${suite.name}`;
+    const coverage = coverageMap.get(key);
+    if (!coverage || coverage.publicMethods.length === 0) return suite;
+
+    const testFilePath = join(config.projectRoot, suite.filePath);
+    let content = fileCache.get(testFilePath);
+    if (content === undefined) {
+      try {
+        content = existsSync(testFilePath)
+          ? readFileSync(testFilePath, "utf-8")
+          : "";
+      } catch {
+        content = "";
+      }
+      fileCache.set(testFilePath, content);
+    }
+    if (!content) return suite;
+
+    // Method names to search for (exclude constructors)
+    const methodNames = coverage.publicMethods
+      .filter((m) => m.kind !== "constructor")
+      .map((m) => m.name);
+    if (methodNames.length === 0) return suite;
+
+    // Split file into per-test blocks
+    const blockMap = extractTestBlocks(content, suite.tests.map((t) => t.name));
+
+    const updatedTests = suite.tests.map((test) => {
+      if (test.target) return test;
+
+      const block = blockMap.get(test.name);
+      if (!block) return test;
+
+      const blockLower = block.toLowerCase();
+      const found = methodNames.filter((name) =>
+        blockLower.includes(name.toLowerCase()),
+      );
+      if (found.length === 0) return test;
+
+      // Use the first non-getter method as primary target, or all methods
+      const primary = found.find((n) => !n.startsWith("get") && !n.startsWith("is"));
+      const target = primary ? `${primary}()` : `${found[0]}()`;
+      return { ...test, target };
+    });
+
+    return { ...suite, tests: updatedTests };
+  });
+}
+
 // --- Internal helpers ---
 
 function createProject(
@@ -289,6 +358,44 @@ function extractPublicMethods(
   }
 
   return methods;
+}
+
+/**
+ * Split test file content into per-test code blocks.
+ * Finds each `it(` declaration and captures everything until the next `it(`.
+ */
+function extractTestBlocks(
+  content: string,
+  testNames: readonly string[],
+): Map<string, string> {
+  const blocks = new Map<string, string>();
+  const lines = content.split("\n");
+
+  // Find line indices for each test by matching the test name in `it(` lines
+  const testPositions: { name: string; line: number }[] = [];
+  for (let i = 0; i < lines.length; i++) {
+    const trimmed = lines[i].trimStart();
+    if (!trimmed.startsWith("it(") && !trimmed.startsWith("it.")) continue;
+
+    for (const name of testNames) {
+      // Match first 30 chars of test name to handle escaping differences
+      const needle = name.substring(0, 30);
+      if (lines[i].includes(needle)) {
+        testPositions.push({ name, line: i });
+        break;
+      }
+    }
+  }
+
+  // Extract blocks between consecutive test positions
+  for (let i = 0; i < testPositions.length; i++) {
+    const start = testPositions[i].line;
+    const end =
+      i < testPositions.length - 1 ? testPositions[i + 1].line : lines.length;
+    blocks.set(testPositions[i].name, lines.slice(start, end).join("\n"));
+  }
+
+  return blocks;
 }
 
 /**

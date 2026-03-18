@@ -132,11 +132,12 @@ export class TestSpecReporter implements Reporter {
     runData: import("../types/index.js").TestRunData,
   ): Promise<import("../types/index.js").TestRunData> {
     try {
-      const { analyzeSourceCoverage, attachCoverage } = await import(
+      const { analyzeSourceCoverage, attachCoverage, inferTestTargets } = await import(
         "../analyzer/source-analyzer.js"
       );
       const coverageMap = await analyzeSourceCoverage(runData.suites, this.config);
-      const enrichedSuites = attachCoverage(runData.suites, coverageMap);
+      let enrichedSuites = attachCoverage(runData.suites, coverageMap);
+      enrichedSuites = inferTestTargets(enrichedSuites, this.config, coverageMap);
       console.log("[test-spec] Source coverage analysis completed.");
       return { ...runData, suites: enrichedSuites, coverageAnalyzed: true };
     } catch (error) {

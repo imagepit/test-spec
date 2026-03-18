@@ -30,4 +30,4 @@ export type { Locale, LocaleMessages } from "./i18n/index.js";
 
 // Analyzer exports (requires ts-morph)
 export { resolveSourceFile } from "./analyzer/source-file-resolver.js";
-export { analyzeSourceCoverage, attachCoverage } from "./analyzer/source-analyzer.js";
+export { analyzeSourceCoverage, attachCoverage, inferTestTargets } from "./analyzer/source-analyzer.js";
