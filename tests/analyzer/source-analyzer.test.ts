@@ -61,31 +61,58 @@ describe("analyzeSourceCoverage", () => {
     expect(coverage).toBeDefined();
     expect(coverage!.sourceFilePath).toBe("sample-class.ts");
 
-    // Public methods: constructor, execute, validate, toDTO, name(getter), name(setter),
-    //   helperFunction, formatValue
-    // Note: private transform() should be excluded
+    // publicMethods includes all extracted (including constructor for reference)
+    // but coverable methods exclude constructor for coverage calculation
     const methodNames = coverage!.publicMethods.map((m) => m.name);
     expect(methodNames).toContain("execute");
     expect(methodNames).toContain("validate");
     expect(methodNames).toContain("toDTO");
-    expect(methodNames).toContain("constructor");
     expect(methodNames).toContain("helperFunction");
     expect(methodNames).toContain("formatValue");
     expect(methodNames).not.toContain("transform"); // private
+    expect(methodNames).not.toContain("constructor"); // excluded from coverage
 
     // Tested: execute, validate (from test targets)
     expect(coverage!.testedMethods).toContain("execute");
     expect(coverage!.testedMethods).toContain("validate");
 
-    // Untested: toDTO, constructor, name, helperFunction, formatValue
+    // Untested: toDTO, name, helperFunction, formatValue (constructor excluded)
     const untestedNames = coverage!.untestedMethods.map((m) => m.name);
     expect(untestedNames).toContain("toDTO");
     expect(untestedNames).not.toContain("execute");
     expect(untestedNames).not.toContain("validate");
+    expect(untestedNames).not.toContain("constructor");
 
-    // Coverage ratio
+    // Coverage ratio: 2 tested / 7 coverable (no constructor)
     expect(coverage!.coverageRatio).toBeGreaterThan(0);
     expect(coverage!.coverageRatio).toBeLessThan(1);
+  });
+
+  it("matches methods via test names when targets are scenario names", async () => {
+    // Simulate: describe('正常系') > it('executeが正しく動作する')
+    // The target is '正常系' (doesn't match 'execute'), but test name contains 'execute'
+    const config = createConfig();
+    const suites = [
+      createSuite({
+        tests: [
+          {
+            fullName: "SampleService > 正常系 > executeが正しく動作する",
+            name: "executeが正しく動作する",
+            target: "正常系",
+            state: "passed",
+            duration: 5,
+            errors: [],
+            filePath: "sample-class.test.ts",
+          },
+        ],
+      }),
+    ];
+
+    const coverageMap = await analyzeSourceCoverage(suites, config);
+    const coverage = coverageMap.get("sample-class.test.ts::SampleService");
+
+    // 'execute' should match via fallback (found in test name)
+    expect(coverage!.testedMethods).toContain("execute");
   });
 
   it("returns null sourceFilePath when source file is not found", async () => {

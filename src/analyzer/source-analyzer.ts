@@ -61,38 +61,62 @@ export async function analyzeSourceCoverage(
       methodCache.set(sourceFilePath, publicMethods);
     }
 
+    // Exclude constructors — DI constructors are not directly tested
+    const coverableMethods = publicMethods.filter((m) => m.kind !== "constructor");
+
     // Collect test targets from this suite
     const testTargets = new Set<string>();
     for (const test of suite.tests) {
       if (test.target) {
-        // Split comma-separated targets (e.g. "execute(), validate()")
         for (const t of test.target.split(",")) {
           testTargets.add(normalizeTarget(t.trim()));
         }
       }
     }
 
-    // Fuzzy match
+    // Collect all test text for fallback matching (test names + fullNames)
+    const allTestText = suite.tests
+      .flatMap((test) => [test.name, test.fullName, test.target])
+      .join(" ")
+      .toLowerCase();
+
+    // Fuzzy match: primary = test target, fallback = search test text for method name
     const testedMethods: string[] = [];
     const untestedMethods: SourceMethod[] = [];
 
-    for (const method of publicMethods) {
+    for (const method of coverableMethods) {
       const normalizedName = normalizeTarget(method.name);
       if (testTargets.has(normalizedName)) {
+        // Direct match via test target (describe block)
+        testedMethods.push(method.name);
+      } else if (allTestText.includes(normalizedName)) {
+        // Fallback: method name found in test names/fullNames
         testedMethods.push(method.name);
       } else {
         untestedMethods.push(method);
       }
     }
 
-    const total = publicMethods.length;
+    // Single-method heuristic: if there's exactly 1 coverable method,
+    // tests exist, but nothing matched, mark it as tested.
+    // (e.g., UseCase with execute() where tests are scenario-organized in Japanese)
+    if (
+      coverableMethods.length === 1 &&
+      suite.tests.length > 0 &&
+      testedMethods.length === 0
+    ) {
+      testedMethods.push(coverableMethods[0].name);
+      untestedMethods.length = 0;
+    }
+
+    const total = coverableMethods.length;
     const coverageRatio = total > 0 ? testedMethods.length / total : 0;
     const relSourcePath = relative(config.projectRoot, sourceFilePath);
 
     coverageMap.set(key, {
       suiteName: suite.name,
       sourceFilePath: relSourcePath,
-      publicMethods: [...publicMethods],
+      publicMethods: [...coverableMethods],
       testedMethods,
       untestedMethods,
       coverageRatio,
