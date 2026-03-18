@@ -1,0 +1,25 @@
+import type { LocaleMessages } from "./index.js";
+
+export const en: LocaleMessages = {
+  reportTitle: "Test Report",
+  generatedAt: "Generated at",
+  total: "Total",
+  tests: "tests",
+  passed: "passed",
+  failed: "failed",
+  skipped: "skipped",
+  duration: "Duration",
+  perspectiveSummary: "Test Perspective Summary",
+  details: "Details",
+  failedTestsDetail: "Failed Test Details",
+  headerLayer: "Layer",
+  headerTestCount: "Tests",
+  headerPassed: "Passed",
+  headerFailed: "Failed",
+  headerPerspectives: "Covered Perspectives",
+  headerIndex: "#",
+  headerPerspective: "Test Perspective",
+  headerResult: "Result",
+  headerDuration: "Duration",
+  file: "File",
+};

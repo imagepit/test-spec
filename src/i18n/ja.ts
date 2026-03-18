@@ -1,0 +1,25 @@
+import type { LocaleMessages } from "./index.js";
+
+export const ja: LocaleMessages = {
+  reportTitle: "テストレポート",
+  generatedAt: "生成日時",
+  total: "合計",
+  tests: "テスト",
+  passed: "passed",
+  failed: "failed",
+  skipped: "skipped",
+  duration: "実行時間",
+  perspectiveSummary: "テスト観点サマリー",
+  details: "詳細",
+  failedTestsDetail: "失敗テスト詳細",
+  headerLayer: "レイヤー",
+  headerTestCount: "テスト数",
+  headerPassed: "合格",
+  headerFailed: "不合格",
+  headerPerspectives: "カバー観点",
+  headerIndex: "#",
+  headerPerspective: "テスト観点",
+  headerResult: "結果",
+  headerDuration: "実行時間",
+  file: "ファイル",
+};
