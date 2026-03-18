@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { generateReport } from "../../src/generator/report-generator.js";
+import {
+  generateReport,
+  generateSplitReport,
+} from "../../src/generator/report-generator.js";
 import type { TestRunData } from "../../src/types/index.js";
 
 function createTestRunData(
@@ -143,3 +146,97 @@ describe("generateReport", () => {
     );
   });
 });
+
+describe("generateSplitReport", () => {
+  it("generates index and per-layer files", () => {
+    const data = createMultiLayerData();
+    const { files } = generateSplitReport(data, "ja");
+
+    expect(files.has("index.md")).toBe(true);
+    expect(files.has("application.md")).toBe(true);
+    expect(files.has("domain.md")).toBe(true);
+  });
+
+  it("index contains summary table with links to layer files", () => {
+    const data = createMultiLayerData();
+    const { files } = generateSplitReport(data, "ja");
+    const index = files.get("index.md")!;
+
+    expect(index).toContain("[Domain](./domain.md)");
+    expect(index).toContain("[Application](./application.md)");
+    expect(index).toContain("## テスト観点サマリー");
+  });
+
+  it("layer file contains suite details for that layer only", () => {
+    const data = createMultiLayerData();
+    const { files } = generateSplitReport(data, "ja");
+    const domain = files.get("domain.md")!;
+    const app = files.get("application.md")!;
+
+    expect(domain).toContain("UserEntity");
+    expect(domain).not.toContain("GetCourseDetailUseCase");
+    expect(app).toContain("GetCourseDetailUseCase");
+    expect(app).not.toContain("UserEntity");
+  });
+
+  it("index does not contain per-suite detail tables", () => {
+    const data = createMultiLayerData();
+    const { files } = generateSplitReport(data, "ja");
+    const index = files.get("index.md")!;
+
+    // Index should have summary but no suite-level detail headings
+    expect(index).not.toContain("## UserEntity");
+    expect(index).not.toContain("## GetCourseDetailUseCase");
+  });
+});
+
+function createMultiLayerData(): TestRunData {
+  return {
+    projectName: "test-project",
+    generatedAt: new Date("2026-03-18T14:30:00"),
+    suites: [
+      {
+        name: "UserEntity",
+        layer: "Domain",
+        filePath: "src/domain/entities/user.test.ts",
+        tests: [
+          {
+            fullName: "UserEntity > validates email",
+            name: "validates email",
+            target: "",
+            state: "passed",
+            duration: 3,
+            errors: [],
+            filePath: "src/domain/entities/user.test.ts",
+          },
+        ],
+      },
+      {
+        name: "GetCourseDetailUseCase",
+        layer: "Application",
+        filePath: "src/application/use-cases/get-course-detail.test.ts",
+        tests: [
+          {
+            fullName: "GetCourseDetailUseCase > execute() > コース詳細を取得できる",
+            name: "コース詳細を取得できる",
+            target: "execute()",
+            state: "passed",
+            duration: 2,
+            errors: [],
+            filePath: "src/application/use-cases/get-course-detail.test.ts",
+          },
+        ],
+      },
+    ],
+    layerStats: [
+      { layer: "Domain", total: 1, passed: 1, failed: 0, skipped: 0, perspectives: ["UserEntity"] },
+      { layer: "Application", total: 1, passed: 1, failed: 0, skipped: 0, perspectives: ["GetCourseDetailUseCase"] },
+    ],
+    totalTests: 2,
+    totalPassed: 2,
+    totalFailed: 0,
+    totalSkipped: 0,
+    totalDuration: 5,
+    failedTests: [],
+  };
+}

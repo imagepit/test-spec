@@ -18,7 +18,8 @@ export type {
 
 // Utility exports for programmatic use
 export { classifyLayer } from "./classifier/layer-classifier.js";
-export { generateReport } from "./generator/report-generator.js";
+export { generateReport, generateSplitReport } from "./generator/report-generator.js";
+export type { SplitReportResult } from "./generator/report-generator.js";
 export { MarkdownBuilder } from "./generator/markdown-builder.js";
 export { resolveConfig } from "./config/schema.js";
 export { getMessages } from "./i18n/index.js";

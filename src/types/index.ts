@@ -91,4 +91,6 @@ export interface TestSpecConfig {
   readonly layerMapping: readonly LayerMapping[];
   /** Project root directory */
   readonly projectRoot: string;
+  /** Split report into per-layer files (default: false) */
+  readonly splitByLayer: boolean;
 }

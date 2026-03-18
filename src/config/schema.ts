@@ -13,6 +13,7 @@ export const testSpecOptionsSchema = z.object({
   locale: z.enum(["ja", "en"]).default("ja"),
   layerMapping: z.array(layerMappingSchema).optional(),
   projectRoot: z.string().optional(),
+  splitByLayer: z.boolean().default(false),
 });
 
 export type TestSpecOptions = z.input<typeof testSpecOptionsSchema>;
@@ -32,5 +33,6 @@ export function resolveConfig(
     locale: parsed.locale,
     layerMapping: [...userMappings, ...DEFAULT_LAYER_MAPPINGS],
     projectRoot: parsed.projectRoot ?? process.cwd(),
+    splitByLayer: parsed.splitByLayer,
   };
 }

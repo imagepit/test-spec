@@ -10,6 +10,7 @@ function createConfig(overrides: Partial<TestSpecConfig> = {}): TestSpecConfig {
     locale: "ja",
     layerMapping: DEFAULT_LAYER_MAPPINGS,
     projectRoot: "/home/user/project",
+    splitByLayer: false,
     ...overrides,
   };
 }

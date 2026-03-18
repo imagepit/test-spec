@@ -1,8 +1,8 @@
 import { mkdirSync, writeFileSync } from "node:fs";
-import { dirname, resolve } from "node:path";
+import { basename, dirname, extname, join, resolve } from "node:path";
 import { resolveConfig } from "../config/schema.js";
 import { TestDataCollector } from "../collector/test-data-collector.js";
-import { generateReport } from "../generator/report-generator.js";
+import { generateReport, generateSplitReport } from "../generator/report-generator.js";
 import type { TestSpecConfig, TestState } from "../types/index.js";
 
 // Use type-only imports for vitest types.
@@ -108,18 +108,46 @@ export class TestSpecReporter implements Reporter {
     _reason: string,
   ): Promise<void> {
     const runData = this.collector.buildTestRunData();
-    const markdown = generateReport(runData, this.config.locale);
 
-    const outputPath = resolve(this.config.projectRoot, this.config.outputPath);
-    mkdirSync(dirname(outputPath), { recursive: true });
-    writeFileSync(outputPath, markdown, "utf-8");
+    if (this.config.splitByLayer) {
+      this.writeSplitReport(runData);
+    } else {
+      this.writeSingleReport(runData);
+    }
 
-    console.log(`\n[test-spec] Report generated: ${this.config.outputPath}`);
     console.log(
-      `[test-spec] ${runData.totalTests} tests | ` +
+      `\n[test-spec] ${runData.totalTests} tests | ` +
         `✅ ${runData.totalPassed} passed | ` +
         `❌ ${runData.totalFailed} failed | ` +
         `⏭ ${runData.totalSkipped} skipped`,
     );
+  }
+
+  private writeSingleReport(runData: import("../types/index.js").TestRunData): void {
+    const markdown = generateReport(runData, this.config.locale);
+    const outputPath = resolve(this.config.projectRoot, this.config.outputPath);
+    mkdirSync(dirname(outputPath), { recursive: true });
+    writeFileSync(outputPath, markdown, "utf-8");
+    console.log(`[test-spec] Report generated: ${this.config.outputPath}`);
+  }
+
+  private writeSplitReport(runData: import("../types/index.js").TestRunData): void {
+    const { files } = generateSplitReport(runData, this.config.locale);
+
+    // Derive output directory from outputPath:
+    // "docs/test-report.md" → "docs/test-report/"
+    const outputPath = resolve(this.config.projectRoot, this.config.outputPath);
+    const ext = extname(outputPath);
+    const stem = basename(outputPath, ext);
+    const outDir = join(dirname(outputPath), stem);
+    mkdirSync(outDir, { recursive: true });
+
+    for (const [filename, content] of files) {
+      const filePath = join(outDir, filename);
+      writeFileSync(filePath, content, "utf-8");
+    }
+
+    const relDir = join(dirname(this.config.outputPath), stem);
+    console.log(`[test-spec] Split reports generated: ${relDir}/ (${files.size} files)`);
   }
 }
