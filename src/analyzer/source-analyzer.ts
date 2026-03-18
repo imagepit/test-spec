@@ -1,5 +1,5 @@
 import { join, relative } from "node:path";
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import type {
   SourceMethod,
   SuiteCoverage,
@@ -82,7 +82,7 @@ export async function analyzeSourceCoverage(
 
     // Fuzzy match: primary = test target, fallback = search test text for method name
     const testedMethods: string[] = [];
-    const untestedMethods: SourceMethod[] = [];
+    let untestedMethods: SourceMethod[] = [];
 
     for (const method of coverableMethods) {
       const normalizedName = normalizeTarget(method.name);
@@ -97,6 +97,29 @@ export async function analyzeSourceCoverage(
       }
     }
 
+    // 3rd tier: scan test file source code for method name references.
+    // Catches cases where test names are in Japanese but code calls the method directly
+    // (e.g., `training.updateSchedule(newSchedule)` in the test body).
+    if (untestedMethods.length > 0) {
+      const testFilePath = join(config.projectRoot, suite.filePath);
+      if (existsSync(testFilePath)) {
+        try {
+          const testFileContent = readFileSync(testFilePath, "utf-8").toLowerCase();
+          const stillUntested: SourceMethod[] = [];
+          for (const method of untestedMethods) {
+            if (testFileContent.includes(method.name.toLowerCase())) {
+              testedMethods.push(method.name);
+            } else {
+              stillUntested.push(method);
+            }
+          }
+          untestedMethods = stillUntested;
+        } catch {
+          // Ignore file read errors — proceed with current matching
+        }
+      }
+    }
+
     // Single-method heuristic: if there's exactly 1 coverable method,
     // tests exist, but nothing matched, mark it as tested.
     // (e.g., UseCase with execute() where tests are scenario-organized in Japanese)
@@ -106,7 +129,7 @@ export async function analyzeSourceCoverage(
       testedMethods.length === 0
     ) {
       testedMethods.push(coverableMethods[0].name);
-      untestedMethods.length = 0;
+      untestedMethods = [];
     }
 
     const total = coverableMethods.length;

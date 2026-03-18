@@ -72,18 +72,21 @@ describe("analyzeSourceCoverage", () => {
     expect(methodNames).not.toContain("transform"); // private
     expect(methodNames).not.toContain("constructor"); // excluded from coverage
 
-    // Tested: execute, validate (from test targets)
+    // Tested: execute, validate (from test targets),
+    // + toDTO, name (from test file content scan — fixture test file references them)
     expect(coverage!.testedMethods).toContain("execute");
     expect(coverage!.testedMethods).toContain("validate");
+    expect(coverage!.testedMethods).toContain("toDTO");
 
-    // Untested: toDTO, name, helperFunction, formatValue (constructor excluded)
+    // Untested: helperFunction, formatValue (not referenced in fixture test file)
     const untestedNames = coverage!.untestedMethods.map((m) => m.name);
-    expect(untestedNames).toContain("toDTO");
+    expect(untestedNames).toContain("helperFunction");
+    expect(untestedNames).toContain("formatValue");
     expect(untestedNames).not.toContain("execute");
     expect(untestedNames).not.toContain("validate");
     expect(untestedNames).not.toContain("constructor");
 
-    // Coverage ratio: 2 tested / 7 coverable (no constructor)
+    // Coverage ratio: >0 and <1
     expect(coverage!.coverageRatio).toBeGreaterThan(0);
     expect(coverage!.coverageRatio).toBeLessThan(1);
   });
@@ -113,6 +116,62 @@ describe("analyzeSourceCoverage", () => {
 
     // 'execute' should match via fallback (found in test name)
     expect(coverage!.testedMethods).toContain("execute");
+  });
+
+  it("matches methods by scanning test file source code for method calls", async () => {
+    // Simulate flat-structure Japanese tests that call methods in test body
+    // but don't mention method names in describe/it names.
+    const config = createConfig();
+    const suites = [
+      createSuite({
+        // Use the fixture test file that has Japanese test names
+        // but calls execute(), validate(), toDTO() in the code body
+        filePath: "sample-class.test.ts",
+        tests: [
+          {
+            fullName: "SampleService > メインの処理を正しく実行できる",
+            name: "メインの処理を正しく実行できる",
+            target: "",
+            state: "passed",
+            duration: 5,
+            errors: [],
+            filePath: "sample-class.test.ts",
+          },
+          {
+            fullName: "SampleService > 入力を検証できる",
+            name: "入力を検証できる",
+            target: "",
+            state: "passed",
+            duration: 3,
+            errors: [],
+            filePath: "sample-class.test.ts",
+          },
+          {
+            fullName: "SampleService > DTOに変換できる",
+            name: "DTOに変換できる",
+            target: "",
+            state: "passed",
+            duration: 2,
+            errors: [],
+            filePath: "sample-class.test.ts",
+          },
+        ],
+      }),
+    ];
+
+    const coverageMap = await analyzeSourceCoverage(suites, config);
+    const coverage = coverageMap.get("sample-class.test.ts::SampleService");
+
+    expect(coverage).toBeDefined();
+    // These methods are called in the test file body (svc.execute, svc.validate, svc.toDTO)
+    expect(coverage!.testedMethods).toContain("execute");
+    expect(coverage!.testedMethods).toContain("validate");
+    expect(coverage!.testedMethods).toContain("toDTO");
+
+    // helperFunction, formatValue are NOT called in the test file
+    const untestedNames = coverage!.untestedMethods.map((m) => m.name);
+    expect(untestedNames).toContain("helperFunction");
+    expect(untestedNames).toContain("formatValue");
   });
 
   it("returns null sourceFilePath when source file is not found", async () => {
